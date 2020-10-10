@@ -1,6 +1,7 @@
 package db
 
 import (
+	"Peony/config"
 	"context"
 	"log"
 	"time"
@@ -11,7 +12,7 @@ import (
 )
 
 func GetConnection() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://SwarzChen:aa889837088@cluster0-shard-00-00.noe6r.gcp.mongodb.net:27017,cluster0-shard-00-01.noe6r.gcp.mongodb.net:27017,cluster0-shard-00-02.noe6r.gcp.mongodb.net:27017/<dbname>?ssl=true&replicaSet=atlas-14mf0y-shard-0&authSource=admin&retryWrites=true&w=majority"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(config.GetMongoConnectString()))
 	if err != nil {
 		log.Fatal(err)
 	}
