@@ -7,16 +7,17 @@ import (
 )
 
 type User struct {
-	Student_number string          `json:”student_number,omitempty”`
-	School         string          `json:”school,omitempty”`
-	Info_list      []bson.ObjectId `json:”info_list,omitempty”`
+	Student_number string          `json:”student_number”`
+	School         string          `json:”school”`
+	Email          string          `json:”email”`
+	Info_list      []bson.ObjectId `json:”info_list”`
 }
 
 type Info struct {
-	Course_number string     `json:”course_number,omitempty”`
-	School        string     `json:”school,omitempty”`
-	Field_title   string     `json:”field_title,omitempty”`
-	Field_content string     `json:”field_content,omitempty”`
-	Origin        string     `json:”origin,omitempty”`
-	Time          *time.Time `json:”time,omitempty”`
+	Course_number string     `json:”course_number”`
+	School        string     `json:”school”`
+	Field_title   string     `json:”field_title"`
+	Field_content string     `json:”field_content”`
+	Origin        string     `json:”origin”`
+	Time          *time.Time `json:”time”`
 }
