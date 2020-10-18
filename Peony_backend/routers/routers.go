@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"Peony/Peony_backend/jwt_middleware.go"
 	"Peony/Peony_backend/user_controllers"
 
 	"github.com/gin-gonic/gin"
@@ -8,13 +9,12 @@ import (
 
 func SetUserRouter(router *gin.Engine) {
 	user_router := router.Group("/user")
-	user_router.GET("", user_controllers.CreateUser)
+	user_router.GET("", jwt_middleware.JwtAuth(), user_controllers.UserDetail)
 	user_router.GET("/auth", user_controllers.AuthHandler)
 	user_router.GET("/redir", user_controllers.UserGmail)
 	user_router.GET("/login")
-	user_router.POST("/")
+	user_router.POST("/", user_controllers.CreateUser)
 	user_router.PUT("/:user_id/")
-
 }
 
 func SetInfoRouter(router *gin.Engine) {
