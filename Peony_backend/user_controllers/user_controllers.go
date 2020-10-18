@@ -8,9 +8,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -31,10 +33,10 @@ type GoogleRep struct {
 	Picture        string `json:"picture"`
 }
 
-type Claims struct {
+type CreateBodyForm struct {
 	Student_number string `json:"student_number"`
 	School         string `json:"school"`
-	jwt.StandardClaims
+	Email          string `json:"email"`
 }
 
 var cred = Credentials{
@@ -52,26 +54,61 @@ var oauth2_config *oauth2.Config = &oauth2.Config{
 	Endpoint: google.Endpoint,
 }
 
+var jwtSecret = []byte(config.GetSecretKey())
+
+func UserDetail(c *gin.Context) {
+
+	c.JSON(200, gin.H{
+		"message": "Here",
+	})
+}
+
 func CreateUser(c *gin.Context) {
 	client := db.GetConnection()
 	collection := client.Database("Kebiao").Collection("user")
 
-	new_user := entity.User{
-		"0812253",
-		"nctu",
-		"aaaa102234@gmail.com",
-		[]bson.ObjectId{
-			bson.NewObjectId(),
-			bson.NewObjectId(),
-		},
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"message": "Request body missing.",
+		})
 	}
+	var body_form CreateBodyForm
+	json.Unmarshal(body, &body_form)
 
-	insertResult, err := collection.InsertOne(context.TODO(), new_user)
+	filter := bson.M{
+		"email": body_form.Email,
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Inserted a single document: ", insertResult.InsertedID)
+	var exist_user entity.User
+	err = collection.FindOne(context.TODO(), filter).Decode(&exist_user)
+	if err != nil {
+		new_user := entity.User{
+			body_form.Student_number,
+			body_form.School,
+			body_form.Email,
+			[]bson.ObjectId{},
+		}
+		_, err := collection.InsertOne(context.TODO(), new_user)
+		if err != nil {
+			log.Fatal(err)
+		}
+		token := GetToken(&new_user)
+
+		c.JSON(201, gin.H{
+			"message": "New user created!",
+			"token":   token,
+		})
+		return
+	}
+
+	c.JSON(409, gin.H{
+		"message": "User already exist.",
+	})
+	return
 }
 
 func UserGmail(c *gin.Context) {
@@ -97,10 +134,56 @@ func UserGmail(c *gin.Context) {
 	var res_struct GoogleRep
 	json.Unmarshal(res_byte, &res_struct)
 
-	c.JSON(http.StatusOK, gin.H{
+	db_client := db.GetConnection()
+	collection := db_client.Database("Kebiao").Collection("user")
+
+	filter := bson.M{
 		"email": res_struct.Email,
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var exist_user entity.User
+	err = collection.FindOne(context.TODO(), filter).Decode(&exist_user)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"message": "Please created new user.",
+		})
+		return
+	}
+	token := GetToken(&exist_user)
+
+	c.JSON(200, gin.H{
+		"token": token,
 	})
 	return
+}
+
+func GetToken(u *(entity.User)) string {
+	now := time.Now()
+	jwtId := (*u).Student_number + strconv.FormatInt(now.Unix(), 10)
+	claims := entity.Claims{
+		(*u).Student_number,
+		(*u).School,
+		(*u).Email,
+		jwt.StandardClaims{
+			Audience:  (*u).Student_number,
+			ExpiresAt: now.Add(86400 * time.Second).Unix(),
+			Id:        jwtId,
+			IssuedAt:  now.Unix(),
+			Issuer:    "ginJWT",
+			NotBefore: now.Add(10 * time.Second).Unix(),
+			Subject:   (*u).Student_number,
+		},
+	}
+	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err := tokenClaims.SignedString(jwtSecret)
+	if err != nil {
+		fmt.Println("here pro")
+		log.Fatal(err)
+	}
+	return token
 }
 
 func RandToken(l int) (string, error) {
@@ -121,4 +204,5 @@ func AuthHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"redirect_url": red_url,
 	})
+	return
 }
