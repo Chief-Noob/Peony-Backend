@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"Peony/Peony_backend/info_controllers"
 	"Peony/Peony_backend/jwt_middleware.go"
 	"Peony/Peony_backend/user_controllers"
 
@@ -19,8 +20,8 @@ func SetUserRouter(router *gin.Engine) {
 
 func SetInfoRouter(router *gin.Engine) {
 	info_router := router.Group("/info/")
-	info_router.GET("")
-	info_router.POST("/")
+	info_router.GET("/")
+	info_router.POST("/", info_controllers.CreateInfo)
 	info_router.PUT("/:info_id/")
 	info_router.DELETE("/:info_id/")
 }
