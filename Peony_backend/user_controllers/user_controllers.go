@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -16,7 +15,8 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -57,9 +57,27 @@ var oauth2_config *oauth2.Config = &oauth2.Config{
 var jwtSecret = []byte(config.GetSecretKey())
 
 func UserDetail(c *gin.Context) {
+	client := db.GetConnection()
+	collection := client.Database("Kebiao").Collection("user")
 
+	email := c.DefaultQuery("email", "None")
+	filter := bson.M{
+		"email": email,
+	}
+	var exist_user entity.UserWithId
+	err := collection.FindOne(context.TODO(), filter).Decode(&exist_user)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"error": "USER NOT FOUND.",
+		})
+		return
+	}
 	c.JSON(200, gin.H{
-		"message": "Here",
+		"Id":             exist_user.Id,
+		"Student_number": exist_user.Student_number,
+		"School":         exist_user.School,
+		"Email":          exist_user.Email,
+		"Info_list":      exist_user.Info_list,
 	})
 }
 
@@ -70,7 +88,7 @@ func CreateUser(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(404, gin.H{
-			"message": "Request body missing.",
+			"error": "NO REQUEST BODY.",
 		})
 	}
 	var body_form CreateBodyForm
@@ -90,23 +108,22 @@ func CreateUser(c *gin.Context) {
 			body_form.Student_number,
 			body_form.School,
 			body_form.Email,
-			[]bson.ObjectId{},
+			[]primitive.ObjectID{},
 		}
 		_, err := collection.InsertOne(context.TODO(), new_user)
 		if err != nil {
 			log.Fatal(err)
 		}
-		token := GetToken(&new_user)
+		token := GetToken(new_user)
 
 		c.JSON(201, gin.H{
-			"message": "New user created!",
-			"token":   token,
+			"token": token,
 		})
 		return
 	}
 
 	c.JSON(409, gin.H{
-		"message": "User already exist.",
+		"error": "USER ALREADY EXIST.",
 	})
 	return
 }
@@ -123,7 +140,9 @@ func UserGmail(c *gin.Context) {
 	response, err := client.Get("https://www.googleapis.com/oauth2/v1/userinfo")
 	if err != nil {
 		log.Println(err)
-		c.JSON(400, gin.H{"error": "Invalid google_access_tok."})
+		c.JSON(400, gin.H{
+			"error": "INVALID GOOGLE_ACCESS_TOKEN.",
+		})
 	}
 
 	res_byte, err := ioutil.ReadAll(response.Body)
@@ -147,12 +166,12 @@ func UserGmail(c *gin.Context) {
 	var exist_user entity.User
 	err = collection.FindOne(context.TODO(), filter).Decode(&exist_user)
 	if err != nil {
-		c.JSON(200, gin.H{
-			"message": "Please created new user.",
+		c.JSON(409, gin.H{
+			"error": "PLEASE CREATE NEW USER.",
 		})
 		return
 	}
-	token := GetToken(&exist_user)
+	token := GetToken(exist_user)
 
 	c.JSON(200, gin.H{
 		"token": token,
@@ -160,27 +179,26 @@ func UserGmail(c *gin.Context) {
 	return
 }
 
-func GetToken(u *(entity.User)) string {
+func GetToken(u entity.User) string {
 	now := time.Now()
-	jwtId := (*u).Student_number + strconv.FormatInt(now.Unix(), 10)
+	jwtId := u.Student_number + strconv.FormatInt(now.Unix(), 10)
 	claims := entity.Claims{
-		(*u).Student_number,
-		(*u).School,
-		(*u).Email,
-		jwt.StandardClaims{
-			Audience:  (*u).Student_number,
+		Student_number: u.Student_number,
+		School:         u.School,
+		Email:          u.Email,
+		StandardClaims: jwt.StandardClaims{
+			Audience:  u.Student_number,
 			ExpiresAt: now.Add(86400 * time.Second).Unix(),
 			Id:        jwtId,
 			IssuedAt:  now.Unix(),
 			Issuer:    "ginJWT",
 			NotBefore: now.Add(10 * time.Second).Unix(),
-			Subject:   (*u).Student_number,
+			Subject:   u.Student_number,
 		},
 	}
 	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err := tokenClaims.SignedString(jwtSecret)
 	if err != nil {
-		fmt.Println("here pro")
 		log.Fatal(err)
 	}
 	return token
@@ -201,8 +219,6 @@ func AuthHandler(c *gin.Context) {
 		return
 	}
 	red_url := oauth2_config.AuthCodeURL(state)
-	c.JSON(200, gin.H{
-		"redirect_url": red_url,
-	})
+	c.Redirect(302, red_url)
 	return
 }
