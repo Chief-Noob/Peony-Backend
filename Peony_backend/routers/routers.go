@@ -9,7 +9,7 @@ import (
 
 func SetUserRouter(router *gin.Engine) {
 	user_router := router.Group("/user")
-	user_router.GET("", jwt_middleware.JwtAuth(), user_controllers.UserDetail)
+	user_router.GET("/", jwt_middleware.JwtAuth(), user_controllers.UserDetail)
 	user_router.GET("/auth", user_controllers.AuthHandler)
 	user_router.GET("/redir", user_controllers.UserGmail)
 	user_router.GET("/login")
