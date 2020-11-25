@@ -8,32 +8,33 @@ import (
 )
 
 type User struct {
-	Student_number string               `json:”student_number”`
-	School         string               `json:”school”`
-	Email          string               `json:”email”`
-	Info_list      []primitive.ObjectID `json:”info_list”`
+	StudentNumber string               `json:”studentnumber”`
+	School        string               `json:”school”`
+	Email         string               `json:”email”`
+	InfoＬist      []primitive.ObjectID `json:”infolist”`
 }
 
 type UserWithId struct {
-	Student_number string               `json:”student_number”`
-	School         string               `json:”school”`
-	Email          string               `json:”email”`
-	Info_list      []primitive.ObjectID `json:”info_list”`
-	Id             primitive.ObjectID   `json:"id" bson:"_id,omitempty"`
+	StudentNumber string               `json:”studentnumber”`
+	School        string               `json:”school”`
+	Email         string               `json:”email”`
+	InfoList      []primitive.ObjectID `json:”infolist”`
+	Id            primitive.ObjectID   `json:"id" bson:"_id,omitempty"`
 }
 
 type Info struct {
-	Course_number string     `json:”course_number”`
-	School        string     `json:”school”`
-	Field_title   string     `json:”field_title"`
-	Field_content string     `json:”field_content”`
-	Origin        string     `json:”origin”`
-	Time          *time.Time `json:”time”`
+	CourseNumber string    `json:”coursenumber”`
+	School       string    `json:”school”`
+	FieldTitle   string    `json:”fieldtitle"`
+	FieldContent string    `json:”fieldcontent”`
+	Origin       string    `json:”origin”`
+	StartTime    time.Time `json:”starttime”`
+	EndTime      time.Time `json:”endtime”`
 }
 
 type Claims struct {
-	Student_number string `json:"student_number"`
-	School         string `json:"school"`
-	Email          string `json:"email"`
+	StudentNumber string `json:"studentnumber"`
+	School        string `json:"school"`
+	Email         string `json:"email"`
 	jwt.StandardClaims
 }
