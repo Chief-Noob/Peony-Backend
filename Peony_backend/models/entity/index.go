@@ -4,14 +4,22 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
-	Student_number string          `json:”student_number”`
-	School         string          `json:”school”`
-	Email          string          `json:”email”`
-	Info_list      []bson.ObjectId `json:”info_list”`
+	Student_number string               `json:”student_number”`
+	School         string               `json:”school”`
+	Email          string               `json:”email”`
+	Info_list      []primitive.ObjectID `json:”info_list”`
+}
+
+type UserWithId struct {
+	Student_number string               `json:”student_number”`
+	School         string               `json:”school”`
+	Email          string               `json:”email”`
+	Info_list      []primitive.ObjectID `json:”info_list”`
+	Id             primitive.ObjectID   `json:"id" bson:"_id,omitempty"`
 }
 
 type Info struct {
