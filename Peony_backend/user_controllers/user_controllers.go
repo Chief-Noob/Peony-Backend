@@ -27,16 +27,10 @@ type Credentials struct {
 }
 
 type GoogleRep struct {
-	Id             string `json:"id"`
-	Email          string `json:"email"`
-	Verified_email bool   `json:"verified_email"`
-	Picture        string `json:"picture"`
-}
-
-type CreateBodyForm struct {
-	Student_number string `json:"student_number"`
-	School         string `json:"school"`
-	Email          string `json:"email"`
+	Id            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verifiedemail"`
+	Picture       string `json:"picture"`
 }
 
 var cred = Credentials{
@@ -73,11 +67,11 @@ func UserDetail(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{
-		"Id":             exist_user.Id,
-		"Student_number": exist_user.Student_number,
-		"School":         exist_user.School,
-		"Email":          exist_user.Email,
-		"Info_list":      exist_user.Info_list,
+		"id":            exist_user.Id,
+		"studentnumber": exist_user.StudentNumber,
+		"school":        exist_user.School,
+		"email":         exist_user.Email,
+		"infolist":      exist_user.InfoList,
 	})
 }
 
@@ -91,7 +85,7 @@ func CreateUser(c *gin.Context) {
 			"error": "NO REQUEST BODY.",
 		})
 	}
-	var body_form CreateBodyForm
+	var body_form entity.User
 	json.Unmarshal(body, &body_form)
 
 	filter := bson.M{
@@ -105,14 +99,16 @@ func CreateUser(c *gin.Context) {
 	err = collection.FindOne(context.TODO(), filter).Decode(&exist_user)
 	if err != nil {
 		new_user := entity.User{
-			body_form.Student_number,
+			body_form.StudentNumber,
 			body_form.School,
 			body_form.Email,
 			[]primitive.ObjectID{},
 		}
 		_, err := collection.InsertOne(context.TODO(), new_user)
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(405, gin.H{
+				"error": "DB INSERT FAIL.",
+			})
 		}
 		token := GetToken(new_user)
 
@@ -181,19 +177,19 @@ func UserGmail(c *gin.Context) {
 
 func GetToken(u entity.User) string {
 	now := time.Now()
-	jwtId := u.Student_number + strconv.FormatInt(now.Unix(), 10)
+	jwtId := u.StudentNumber + strconv.FormatInt(now.Unix(), 10)
 	claims := entity.Claims{
-		Student_number: u.Student_number,
-		School:         u.School,
-		Email:          u.Email,
+		StudentNumber: u.StudentNumber,
+		School:        u.School,
+		Email:         u.Email,
 		StandardClaims: jwt.StandardClaims{
-			Audience:  u.Student_number,
+			Audience:  u.StudentNumber,
 			ExpiresAt: now.Add(86400 * time.Second).Unix(),
 			Id:        jwtId,
 			IssuedAt:  now.Unix(),
 			Issuer:    "ginJWT",
 			NotBefore: now.Add(10 * time.Second).Unix(),
-			Subject:   u.Student_number,
+			Subject:   u.StudentNumber,
 		},
 	}
 	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
