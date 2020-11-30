@@ -5,7 +5,6 @@ import (
 	"Peony/Peony_backend/models/entity"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	_ "time"
 
@@ -15,16 +14,16 @@ import (
 )
 
 func CreateInfo(c *gin.Context) {
-	body_json, err := ioutil.ReadAll(c.Request.Body)
+	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(404, gin.H{
 			"error": "NO REQUEST BODY.",
 		})
 		return
 	}
+
 	var body_info entity.Info
-	json.Unmarshal(body_json, &body_info)
-	fmt.Println(body_info.CourseNumber)
+	json.Unmarshal(body, &body_info)
 
 	client := db.GetConnection()
 	collection := client.Database("Kebiao").Collection("info")
@@ -57,15 +56,7 @@ func CreateInfo(c *gin.Context) {
 			return
 		}
 
-		c.JSON(201, gin.H{
-			"coursenumber": new_info.CourseNumber,
-			"school":       new_info.School,
-			"fieldtitle":   new_info.FieldTitle,
-			"fieldcontent": new_info.FieldContent,
-			"origin":       new_info.Origin,
-			"starttime":    new_info.StartTime,
-			"endtime":      new_info.EndTime,
-		})
+		c.JSON(201, new_info)
 		return
 	}
 	c.JSON(409, gin.H{
