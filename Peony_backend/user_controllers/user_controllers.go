@@ -66,13 +66,7 @@ func UserDetail(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(200, gin.H{
-		"id":            exist_user.Id,
-		"studentnumber": exist_user.StudentNumber,
-		"school":        exist_user.School,
-		"email":         exist_user.Email,
-		"infolist":      exist_user.InfoList,
-	})
+	c.JSON(200, exist_user)
 }
 
 func CreateUser(c *gin.Context) {
