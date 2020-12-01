@@ -1,11 +1,14 @@
 package info_controllers
 
 import (
+	"Peony/Peony_backend/deserializers"
+	_ "Peony/Peony_backend/deserializers"
 	"Peony/Peony_backend/models/db"
 	"Peony/Peony_backend/models/entity"
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"time"
 	_ "time"
 
 	"github.com/gin-gonic/gin"
@@ -23,8 +26,15 @@ func CreateInfo(c *gin.Context) {
 	}
 
 	var body_info entity.Info
-	json.Unmarshal(body, &body_info)
 
+	json.Unmarshal(body, &body_info)
+	body_info, err = deserializers.InfoDeserializer(body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	client := db.GetConnection()
 	collection := client.Database("Kebiao").Collection("info")
 	filter := bson.M{
@@ -45,7 +55,7 @@ func CreateInfo(c *gin.Context) {
 			body_info.FieldTitle,
 			body_info.FieldContent,
 			body_info.Origin,
-			body_info.StartTime,
+			time.Now(),
 			body_info.EndTime,
 		}
 		_, err = collection.InsertOne(context.TODO(), new_info)
