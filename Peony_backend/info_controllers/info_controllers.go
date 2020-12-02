@@ -15,6 +15,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	_ "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -97,5 +98,51 @@ func CreateInfo(c *gin.Context) {
 }
 
 func InfoDetail(c *gin.Context) {
+	info_id := c.DefaultQuery("info_id", "None")
+	var info entity.Info
 
+	if info_id != "None" {
+		client := db.GetConnection()
+		collection := client.Database("Kebiao").Collection("info")
+		info_id_pure, _ := primitive.ObjectIDFromHex(info_id)
+		filter := bson.M{
+			"_id": info_id_pure,
+		}
+		err := collection.FindOne(context.TODO(), filter).Decode(&info)
+		if err != nil {
+			c.JSON(409, gin.H{
+				"error": "INFO NOT EXIST.",
+			})
+			return
+		}
+		c.JSON(200, info)
+		return
+	}
+
+	course_number := c.DefaultQuery("course_number", "None")
+	school := c.DefaultQuery("school", "None")
+	if course_number != "None" && school != "None" {
+		client := db.GetConnection()
+		collection := client.Database("Kebiao").Collection("info")
+		filter := bson.M{
+			"coursenumber": course_number,
+			"school":       school,
+		}
+		var all_info []bson.M
+		cursor, err := collection.Find(context.TODO(), filter)
+		if err != nil {
+			c.JSON(409, gin.H{
+				"error": "INFO NOT EXISTS.",
+			})
+			return
+		}
+		err = cursor.All(context.TODO(), &all_info)
+		if err != nil {
+			c.JSON(400, gin.H{
+				"error": "CURSOR ERROR.",
+			})
+			return
+		}
+		c.JSON(200, all_info)
+	}
 }
