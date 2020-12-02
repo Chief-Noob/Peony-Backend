@@ -21,7 +21,7 @@ func SetUserRouter(router *gin.Engine) {
 func SetInfoRouter(router *gin.Engine) {
 	info_router := router.Group("/info/")
 	info_router.GET("/")
-	info_router.POST("/", info_controllers.CreateInfo)
+	info_router.POST("/", jwt_middleware.JwtAuth(), info_controllers.CreateInfo)
 	info_router.PUT("/:info_id/")
 	info_router.DELETE("/:info_id/")
 }
