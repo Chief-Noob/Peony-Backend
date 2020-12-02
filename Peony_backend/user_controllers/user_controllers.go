@@ -55,6 +55,12 @@ func UserDetail(c *gin.Context) {
 	collection := client.Database("Kebiao").Collection("user")
 
 	email := c.DefaultQuery("email", "None")
+	if email == "None" {
+		c.JSON(400, gin.H{
+			"error": "EMAIL PARAMS EMPTY",
+		})
+		return
+	}
 	filter := bson.M{
 		"email": email,
 	}
