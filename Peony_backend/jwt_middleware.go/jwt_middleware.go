@@ -11,19 +11,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var jwtSecret = []byte(config.GetSecretKey())
+var jwt_secret = []byte(config.GetSecretKey())
 
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.Request.Header.Get("Authetication")
-		if len(authHeader) == 0 {
+		auth_header := c.Request.Header.Get("Authetication")
+		if len(auth_header) == 0 {
 			c.JSON(400, gin.H{
 				"error": "No authentication header.",
 			})
 			c.Abort()
 			return
 		}
-		mat, err := regexp.MatchString(`token.*`, authHeader)
+		mat, err := regexp.MatchString(`token.*`, auth_header)
 
 		if err != nil || mat == false {
 			c.JSON(401, gin.H{
@@ -32,10 +32,10 @@ func JwtAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		token := strings.Split(authHeader, " ")[1]
+		token := strings.Split(auth_header, " ")[1]
 
-		tokenClaims, err := jwt.ParseWithClaims(token, &entity.Claims{}, func(token *jwt.Token) (i interface{}, err error) {
-			return jwtSecret, nil
+		token_claims, err := jwt.ParseWithClaims(token, &entity.Claims{}, func(token *jwt.Token) (i interface{}, err error) {
+			return jwt_secret, nil
 		})
 
 		if err != nil {
@@ -61,7 +61,7 @@ func JwtAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if _, ok := tokenClaims.Claims.(*entity.Claims); ok && tokenClaims.Valid {
+		if _, ok := token_claims.Claims.(*entity.Claims); ok && token_claims.Valid {
 			c.Next()
 		} else {
 			c.Abort()
