@@ -11,7 +11,7 @@ type User struct {
 	StudentNumber string               `json:”studentnumber”`
 	School        string               `json:”school”`
 	Email         string               `json:”email”`
-	InfoＬist      []primitive.ObjectID `json:”infolist”`
+	InfoList      []primitive.ObjectID `json:”infolist”`
 }
 
 type UserWithId struct {
