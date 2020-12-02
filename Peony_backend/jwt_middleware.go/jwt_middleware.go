@@ -15,10 +15,10 @@ var jwt_secret = []byte(config.GetSecretKey())
 
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		auth_header := c.Request.Header.Get("Authetication")
+		auth_header := c.Request.Header.Get("Authentication")
 		if len(auth_header) == 0 {
 			c.JSON(400, gin.H{
-				"error": "No authentication header.",
+				"error": "NO AUTHENTICATION HEADER.",
 			})
 			c.Abort()
 			return
