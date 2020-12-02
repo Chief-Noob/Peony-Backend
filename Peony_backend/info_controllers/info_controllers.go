@@ -5,16 +5,20 @@ import (
 	_ "Peony/Peony_backend/deserializers"
 	"Peony/Peony_backend/models/db"
 	"Peony/Peony_backend/models/entity"
+	"Peony/config"
 	"context"
 	"encoding/json"
 	"io/ioutil"
-	"time"
+	"strings"
 	_ "time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	_ "go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+var jwt_secret = []byte(config.GetSecretKey())
 
 func CreateInfo(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -46,31 +50,52 @@ func CreateInfo(c *gin.Context) {
 		"starttime":    body_info.StartTime,
 		"endtime":      body_info.EndTime,
 	}
+
 	var exist_info entity.Info
 	err = collection.FindOne(context.TODO(), filter).Decode(&exist_info)
-	if err != nil {
-		new_info := entity.Info{
-			body_info.CourseNumber,
-			body_info.School,
-			body_info.FieldTitle,
-			body_info.FieldContent,
-			body_info.Origin,
-			time.Now(),
-			body_info.EndTime,
-		}
-		_, err = collection.InsertOne(context.TODO(), new_info)
-		if err != nil {
-			c.JSON(405, gin.H{
-				"error": "DB INSERT FAIL.",
-			})
-			return
-		}
-
-		c.JSON(201, new_info)
+	if err == nil {
+		c.JSON(409, gin.H{
+			"error": "INFO ALREADY EXIST.",
+		})
 		return
 	}
-	c.JSON(409, gin.H{
-		"error": "INFO ALREADY EXIST.",
+
+	insert_result, err := collection.InsertOne(context.TODO(), body_info)
+	if err != nil {
+		c.JSON(405, gin.H{
+			"error": "DB INSERT FAIL.",
+		})
+		return
+	}
+
+	auth_header := c.Request.Header.Get("Authetication")
+	token := strings.Split(auth_header, " ")[1]
+	token_claims, err := jwt.ParseWithClaims(token, &entity.Claims{}, func(token *jwt.Token) (i interface{}, err error) {
+		return jwt_secret, nil
 	})
+	claims, _ := token_claims.Claims.(*entity.Claims)
+	user_filter := bson.M{
+		"email": claims.Email,
+	}
+
+	user_update := bson.D{{"$addToSet", bson.M{"infolist": insert_result.InsertedID}}}
+	collection = client.Database("Kebiao").Collection("user")
+	_, err = collection.UpdateOne(
+		context.TODO(),
+		user_filter,
+		user_update,
+	)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"error": "USER NOT EXIST.",
+		})
+		return
+	}
+
+	c.JSON(201, body_info)
 	return
+}
+
+func InfoDetail(c *gin.Context) {
+
 }
