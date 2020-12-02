@@ -7,7 +7,6 @@ import (
 	"Peony/Peony_backend/models/entity"
 	"Peony/config"
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"strings"
 	_ "time"
@@ -32,7 +31,6 @@ func CreateInfo(c *gin.Context) {
 
 	var body_info entity.Info
 
-	json.Unmarshal(body, &body_info)
 	body_info, err = deserializers.InfoDeserializer(body)
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -79,7 +77,9 @@ func CreateInfo(c *gin.Context) {
 		"email": claims.Email,
 	}
 
-	user_update := bson.D{{"$addToSet", bson.M{"infolist": insert_result.InsertedID}}}
+	user_update := bson.D{
+		{"$addToSet", bson.M{"infolist": insert_result.InsertedID}},
+	}
 	collection = client.Database("Kebiao").Collection("user")
 	_, err = collection.UpdateOne(
 		context.TODO(),
@@ -87,8 +87,8 @@ func CreateInfo(c *gin.Context) {
 		user_update,
 	)
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "USER NOT EXIST.",
+		c.JSON(406, gin.H{
+			"error": "USER UPDATE FAIL.",
 		})
 		return
 	}
@@ -144,5 +144,63 @@ func InfoDetail(c *gin.Context) {
 			return
 		}
 		c.JSON(200, all_info)
+		return
 	}
+	c.JSON(400, gin.H{
+		"error": "PARAMS MALFORMED.",
+	})
+	return
+}
+
+func UpdateInfo(c *gin.Context) {
+	info_id_raw := c.Param("info_id")
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": "REQUEST BODY MALFORMED.",
+		})
+		return
+	}
+	var body_info entity.Info
+	body_info, err = deserializers.InfoDeserializer(body)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	info_id, err := primitive.ObjectIDFromHex(info_id_raw)
+	if err != nil {
+		c.JSON(406, gin.H{
+			"error": "INFO_ID MALFORMED.",
+		})
+		return
+	}
+
+	client := db.GetConnection()
+	collection := client.Database("Kebiao").Collection("info")
+	filter := bson.M{
+		"_id": info_id,
+	}
+	update := bson.D{{"$set", bson.M{
+		"coursenumber": body_info.CourseNumber,
+		"school":       body_info.School,
+		"fieldtitle":   body_info.FieldTitle,
+		"fieldcontent": body_info.FieldContent,
+		"origin":       body_info.Origin,
+		"starttime":    body_info.StartTime,
+		"endtime":      body_info.EndTime,
+	}},
+	}
+
+	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		c.JSON(404, gin.H{
+			"error": "USER UPDATE FAIL.",
+		})
+		return
+	}
+
+	c.JSON(200, body_info)
+	return
 }
